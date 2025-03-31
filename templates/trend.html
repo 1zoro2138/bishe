@@ -1,0 +1,513 @@
+{% extends "base.html" %}
+{% block title %}各省票房趋势{% endblock %}
+
+{% block extra_head %}
+<style>
+    .chart-container-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    
+    .chart-main {
+        flex: 1 1 65%;
+        min-width: 500px;
+    }
+    
+    .chart-sidebar {
+        flex: 1 1 25%;
+        min-width: 250px;
+    }
+    
+    .chart-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .btn-group .btn {
+        margin-right: 5px;
+    }
+    
+    .zoom-controls {
+        display: flex;
+        gap: 10px;
+    }
+    
+    #trendChart {
+        width: 100% !important;
+        height: 450px !important;
+    }
+    
+    /* 添加自定义鼠标样式 */
+    #trendChart.pan-active {
+        cursor: grab;
+    }
+    
+    #trendChart.panning {
+        cursor: grabbing !important;
+    }
+    
+    .pan-tip {
+        display: none;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 100;
+        pointer-events: none;
+        animation: fadein 0.5s;
+    }
+    
+    @keyframes fadein {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+    }
+    
+    .search-box {
+        position: relative;
+        margin-bottom: 15px;
+    }
+    
+    .search-box input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    
+    .search-box i {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #666;
+    }
+    
+    .province-stat {
+        font-size: 12px;
+        color: #666;
+        margin-top: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chart-container">
+    <h2>各省份综合票房趋势折线图</h2>
+    
+    {% if error %}
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle me-2"></i>错误: {{ error }}
+        </div>
+    {% else %}
+        <div class="chart-container-wrapper">
+            <div class="chart-main">
+                <div class="chart-controls">
+                    <div class="btn-group">
+                        <button id="resetZoomBtn" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-undo me-1"></i>重置缩放
+                        </button>
+                    </div>
+                    <div class="zoom-controls">
+                        <button id="zoomInBtn" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                        <button id="zoomOutBtn" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-search-minus"></i>
+                        </button>
+                        <span class="ms-2 text-muted"><small><i class="fas fa-info-circle me-1"></i>提示: 放大后点击并拖动可查看其他区域</small></span>
+                    </div>
+                </div>
+                <div style="position: relative;">
+                    <canvas id="trendChart"></canvas>
+                    <div id="panTip" class="pan-tip">拖动查看其他区域</div>
+                </div>
+                <div class="province-stat mt-3">
+                    <span id="selectedCount">已选择0个省份</span> / 共<span id="totalProvinces">0</span>个省份
+                </div>
+            </div>
+            
+            <div class="chart-sidebar">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="m-0">选择省份</h4>
+                    <div>
+                        <button id="selectAllBtn" class="btn btn-sm btn-primary">
+                            <i class="fas fa-check-square me-1"></i>全选
+                        </button>
+                        <button id="deselectAllBtn" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-square me-1"></i>清除
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="search-box">
+                    <input type="text" id="provinceSearch" placeholder="搜索省份..." class="form-control form-control-sm">
+                    <i class="fas fa-search"></i>
+                </div>
+                
+                <div id="provinceList">
+                    <!-- 省份列表将由JS动态生成 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 通过data属性传递数据 -->
+        <div id="chartDataContainer" data-chart='{{ chart_data | safe }}' style="display:none;"></div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1"></script>
+<script>
+    // 从HTML元素获取数据
+    const chartData = JSON.parse(document.getElementById('chartDataContainer').dataset.chart);
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    let myChart;
+    let provinces = Object.keys(chartData);
+    let selectedProvinces = [];  // 默认不选中任何省份
+    
+    // 更新省份统计信息
+    function updateProvinceStats() {
+        document.getElementById('selectedCount').textContent = `已选择${selectedProvinces.length}个省份`;
+        document.getElementById('totalProvinces').textContent = provinces.length;
+    }
+    
+    // 生成省份选择列表
+    const provinceList = document.getElementById('provinceList');
+    provinces.forEach(province => {
+        const color = getRandomColor();
+        const div = document.createElement('div');
+        div.className = 'province-item';
+        div.setAttribute('data-province', province);
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `province-${province}`;
+        checkbox.value = province;
+        checkbox.className = 'province-checkbox';
+        checkbox.dataset.color = color;
+        checkbox.addEventListener('change', updateChart);
+        
+        const label = document.createElement('label');
+        label.htmlFor = `province-${province}`;
+        label.textContent = province;
+        
+        const colorBox = document.createElement('span');
+        colorBox.style.backgroundColor = color;
+        
+        div.appendChild(checkbox);
+        div.appendChild(label);
+        div.appendChild(colorBox);
+        provinceList.appendChild(div);
+    });
+    
+    // 更新省份统计
+    updateProvinceStats();
+    
+    // 全选按钮事件
+    document.getElementById('selectAllBtn').addEventListener('click', function() {
+        const checkboxes = document.querySelectorAll('#provinceList input[type="checkbox"]');
+        checkboxes.forEach(checkbox => checkbox.checked = true);
+        updateChart();
+    });
+    
+    // 清除按钮事件
+    document.getElementById('deselectAllBtn').addEventListener('click', function() {
+        const checkboxes = document.querySelectorAll('#provinceList input[type="checkbox"]');
+        checkboxes.forEach(checkbox => checkbox.checked = false);
+        updateChart();
+    });
+    
+    // 搜索框功能
+    document.getElementById('provinceSearch').addEventListener('input', function(e) {
+        const searchText = e.target.value.toLowerCase();
+        const items = document.querySelectorAll('.province-item');
+        
+        items.forEach(item => {
+            const province = item.getAttribute('data-province').toLowerCase();
+            if (province.includes(searchText)) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    });
+    
+    // 添加鼠标事件处理
+    const chartCanvas = document.getElementById('trendChart');
+    const panTip = document.getElementById('panTip');
+    
+    chartCanvas.addEventListener('mousedown', function(e) {
+        if (myChart && myChart._active && myChart._active.length > 0) {
+            chartCanvas.classList.add('panning');
+        }
+    });
+    
+    document.addEventListener('mouseup', function() {
+        chartCanvas.classList.remove('panning');
+    });
+    
+    // 放大/缩小/重置按钮功能增强
+    document.getElementById('zoomInBtn').addEventListener('click', function() {
+        if (myChart) {
+            myChart.zoom(1.1);
+            showPanTip();
+            chartCanvas.classList.add('pan-active');
+        }
+    });
+    
+    document.getElementById('zoomOutBtn').addEventListener('click', function() {
+        if (myChart) {
+            myChart.zoom(0.9);
+            if (isZoomedIn()) {
+                chartCanvas.classList.add('pan-active');
+            } else {
+                chartCanvas.classList.remove('pan-active');
+            }
+        }
+    });
+    
+    document.getElementById('resetZoomBtn').addEventListener('click', function() {
+        if (myChart) {
+            myChart.resetZoom();
+            chartCanvas.classList.remove('pan-active');
+        }
+    });
+    
+    function showPanTip() {
+        panTip.style.display = 'block';
+        setTimeout(() => {
+            panTip.style.display = 'none';
+        }, 2000);
+    }
+    
+    function isZoomedIn() {
+        if (!myChart || !myChart.scales) return false;
+        const xScale = myChart.scales.x;
+        const originalMin = xScale._userMin === undefined;
+        const originalMax = xScale._userMax === undefined;
+        return !(originalMin && originalMax);
+    }
+    
+    // 更新图表
+    function updateChart() {
+        selectedProvinces = [];
+        const checkboxes = document.querySelectorAll('#provinceList input[type="checkbox"]:checked');
+        
+        checkboxes.forEach(checkbox => {
+            selectedProvinces.push(checkbox.value);
+        });
+        
+        // 更新省份统计
+        updateProvinceStats();
+        
+        // 准备数据集
+        const datasets = selectedProvinces.map(province => {
+            const checkbox = document.querySelector(`#province-${province}`);
+            return {
+                label: province,
+                data: chartData[province].data,
+                borderColor: checkbox.dataset.color,
+                backgroundColor: hexToRgba(checkbox.dataset.color, 0.2),
+                borderWidth: 2,
+                fill: false,  // 折线图不填充
+                tension: 0.1,
+                pointRadius: 3,             // 小一点的数据点
+                pointHoverRadius: 5,        // 鼠标悬停时放大数据点
+                pointHitRadius: 10          // 扩大点击范围，使交互更容易
+            };
+        });
+        
+        // 销毁旧图表（如果存在）
+        if (myChart) {
+            myChart.destroy();
+        }
+        
+        // 移除旧的事件监听器
+        chartCanvas.removeEventListener('mousedown', handleMouseDown);
+        chartCanvas.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        
+        // 创建新折线图
+        myChart = new Chart(ctx, {
+            type: 'line',  // 固定为折线图
+            data: {
+                labels: provinces.length > 0 ? chartData[provinces[0]].labels : [],
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'nearest',        // 只有最近的数据点会触发
+                    intersect: true,        // 只有当光标与数据点相交时才显示
+                    axis: 'xy'              // 在x和y轴方向都考虑距离
+                },
+                plugins: {
+                    legend: {
+                        display: false  // 不显示图例，因为已经有了自定义选择列表
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += context.parsed.y.toLocaleString() + ' 万元';
+                                return label;
+                            }
+                        }
+                    },
+                    zoom: {
+                        pan: {
+                            enabled: true,
+                            mode: 'xy',
+                            modifierKey: null,      // 不需要按修饰键，直接拖动
+                            threshold: 0,           // 降低拖动阈值，提高灵敏度
+                            onPan: function() {
+                                chartCanvas.classList.add('pan-active');
+                            },
+                            onPanComplete: function() {
+                                // 如果已经不是放大状态，移除 pan-active 类
+                                if (!isZoomedIn()) {
+                                    chartCanvas.classList.remove('pan-active');
+                                }
+                            }
+                        },
+                        zoom: {
+                            wheel: {
+                                enabled: true,
+                                speed: 0.05          // 调整滚轮缩放速度
+                            },
+                            pinch: {
+                                enabled: true
+                            },
+                            mode: 'xy',
+                            onZoom: function() {
+                                chartCanvas.classList.add('pan-active');
+                                isPanned = false;
+                            },
+                            onZoomComplete: function() {
+                                if (isZoomedIn()) {
+                                    showPanTip();
+                                } else {
+                                    chartCanvas.classList.remove('pan-active');
+                                }
+                            },
+                            drag: {
+                                enabled: false      // 禁用拖拽区域缩放，以便支持拖拽平移
+                            }
+                        },
+                        limits: {
+                            x: {min: 'original', max: 'original', minRange: 1},
+                            y: {min: 'original', max: 'original', minRange: 1}
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: '时间范围',
+                            font: {
+                                weight: 'bold'
+                            }
+                        },
+                        ticks: {
+                            autoSkip: true,
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '综合票房（万元）',
+                            font: {
+                                weight: 'bold'
+                            }
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        // 图表创建后，添加拖拽支持
+        let isDragging = false;
+        let startX, startY;
+        let isPanned = false;
+        
+        function handleMouseDown(e) {
+            if (isZoomedIn()) {
+                isDragging = true;
+                startX = e.offsetX;
+                startY = e.offsetY;
+                chartCanvas.classList.add('panning');
+            }
+        }
+        
+        function handleMouseMove(e) {
+            if (!isDragging) {
+                if (isZoomedIn()) {
+                    chartCanvas.classList.add('pan-active');
+                }
+                return;
+            }
+            
+            if (myChart && isDragging) {
+                const deltaX = e.offsetX - startX;
+                const deltaY = e.offsetY - startY;
+                
+                if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+                    myChart.pan({ x: deltaX, y: deltaY });
+                    startX = e.offsetX;
+                    startY = e.offsetY;
+                    isPanned = true;
+                }
+            }
+        }
+        
+        function handleMouseUp() {
+            isDragging = false;
+            chartCanvas.classList.remove('panning');
+        }
+        
+        // 添加自定义拖拽事件监听器
+        chartCanvas.addEventListener('mousedown', handleMouseDown);
+        chartCanvas.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    // 初始化图表
+    updateChart();
+
+    // 生成随机颜色
+    function getRandomColor() {
+        const letters = '0123456789ABCDEF';
+        let color = '#';
+        for (let i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+    }
+    
+    // 转换十六进制颜色为rgba
+    function hexToRgba(hex, alpha) {
+        var r = parseInt(hex.slice(1, 3), 16),
+            g = parseInt(hex.slice(3, 5), 16),
+            b = parseInt(hex.slice(5, 7), 16);
+        
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+</script>
+{% endblock %}

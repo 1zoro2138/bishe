@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{{ city }}票房详情{% endblock %}
+{% block content %}
+    <h2>{{ city }} - 票房详情</h2>
+    <p>总票房: {{ total_box_office }} 万元</p>
+    <a href="/heatmap">返回热力图</a>
+{% endblock %}

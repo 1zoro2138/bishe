@@ -1,0 +1,638 @@
+{% extends "base.html" %}
+{% block title %}{{ film.title }} - 电影详情{% endblock %}
+
+{% block extra_head %}
+    <style>
+        .film-detail-header {
+            background: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), url('/static/images/films/{{ film.image }}');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            padding: 80px 0;
+            margin-bottom: 30px;
+        }
+
+        .film-detail-header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+        }
+
+        .film-poster {
+            border-radius: 8px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+            max-height: 400px;
+        }
+
+        .film-info {
+            padding: 20px;
+        }
+
+        .film-meta {
+            font-size: 1.1rem;
+            color: #ddd;
+            margin-bottom: 20px;
+        }
+
+        .film-stats {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stats-title {
+            color: #333;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .stats-item {
+            margin-bottom: 10px;
+        }
+
+        .stats-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .stats-value {
+            font-weight: 700;
+            color: #c8161d;
+        }
+
+        .analysis-section {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .analysis-title {
+            color: #333;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            border-left: 5px solid #c8161d;
+            padding-left: 15px;
+        }
+
+        .analysis-content {
+            line-height: 1.7;
+            color: #444;
+        }
+
+        .related-films {
+            margin-top: 40px;
+        }
+
+        .related-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .related-card {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            height: 100%;
+        }
+
+        .related-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+
+        .related-img {
+            height: 180px;
+            overflow: hidden;
+        }
+
+        .related-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .related-info {
+            padding: 15px;
+        }
+
+        .related-title h5 {
+            font-size: 1.1rem;
+            color: #c8161d;
+            margin-bottom: 5px;
+        }
+
+        .rating-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #c8161d;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-right: 15px;
+        }
+
+        .back-btn {
+            margin-top: 30px;
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #f8f9fa;
+            color: #333;
+            border-radius: 4px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background-color: #e9ecef;
+            color: #c8161d;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <!-- 电影详情头部 -->
+    <div class="film-detail-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-4 text-center">
+                    <img src="/static/images/films/{{ film.image }}" alt="{{ film.title }}" class="film-poster img-fluid" onerror="this.src='/static/images/default_film.jpg'">
+                </div>
+                <div class="col-md-8">
+                    <h1>{{ film.title }}</h1>
+                    <div class="film-meta">
+                        {{ film.year }} | {{ film.director }} | {{ category }}
+                    </div>
+                    <div class="d-flex mt-4">
+                        <div class="rating-circle me-3">
+                            <span id="douban-rating">{{ ratings.douban }}</span>
+                        </div>
+                        <div>
+                            <div class="text-white">豆瓣评分</div>
+                            <small class="text-light">基于<span id="rating-count">{{ ratings.douban_votes }}</span>人评价</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 票房和评分数据 -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="film-stats">
+                    <h3 class="stats-title">票房数据</h3>
+                    <div class="stats-item">
+                        <span class="stats-label">总票房：</span>
+                        <span class="stats-value" id="total-box-office">{{ box_office.total }}</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="stats-label">首周票房：</span>
+                        <span class="stats-value" id="first-week-box-office">{{ box_office.first_week }}</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="stats-label">单日最高票房：</span>
+                        <span class="stats-value" id="highest-day-box-office">{{ box_office.highest_single_day }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="film-stats">
+                    <h3 class="stats-title">评分数据</h3>
+                    <div class="stats-item">
+                        <span class="stats-label">豆瓣评分：</span>
+                        <span class="stats-value" id="douban-score">{{ ratings.douban }}</span>
+                        <small class="text-muted">({{ ratings.douban_votes }}人评价)</small>
+                    </div>
+                    <div class="stats-item">
+                        <span class="stats-label">IMDb评分：</span>
+                        <span class="stats-value" id="imdb-score">{{ ratings.imdb }}</span>
+                        <small class="text-muted">({{ ratings.imdb_votes }}人评价)</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 文化元素和影响力 -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="film-stats">
+                    <h3 class="stats-title">文化内涵</h3>
+                    <div class="stats-item">
+                        <span class="stats-label">文化元素：</span>
+                        <span class="stats-value">{{ film.cultural_elements }}</span>
+                    </div>
+                    <div class="stats-item mt-3">
+                        <span class="stats-label">影响力：</span>
+                        <div class="mt-2">{{ film.impact }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 影片分析 -->
+        <div class="analysis-section mt-4">
+            <h3 class="analysis-title">影片分析</h3>
+            <div class="analysis-content" id="film-analysis">
+                {{ analysis }}
+            </div>
+        </div>
+
+        <!-- 相关电影推荐 -->
+        {% if related_films %}
+            <div class="related-films">
+                <h3 class="related-title">相关推荐</h3>
+                <div class="row">
+                    {% for related in related_films %}
+                        <div class="col-md-4 mb-4">
+                            <a href="{{ url_for('film_detail', film_title=related.title) }}" class="text-decoration-none">
+                                <div class="related-card">
+                                    <div class="related-img">
+                                        <img src="/static/images/films/{{ related.image }}" alt="{{ related.title }}" onerror="this.src='/static/images/default_film.jpg'">
+                                    </div>
+                                    <div class="related-info">
+                                        <div class="related-title">
+                                            <h5>{{ related.title }}</h5>
+                                            <small>{{ related.year }} | {{ related.director }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- 返回按钮 -->
+        <a href="{{ url_for('traditional_culture') }}" class="back-btn">
+            <i class="fas fa-arrow-left me-2"></i>返回传统文化电影列表
+        </a>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取电影票房和评分数据
+            fetchFilmData("{{ film.title }}");
+        });
+
+        async function fetchFilmData(filmTitle) {
+            try {
+
+                if (filmTitle === "卧虎藏龙") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "2.13亿美元",
+                            first_week: "660万美元",
+                            highest_single_day: "120万美元"
+                        },
+                        ratings: {
+                            douban: "8.4",
+                            imdb: "7.9",
+                            ratingCount: "517548"
+                        },
+                        analysis: "《卧虎藏龙》是李安导演的武侠代表作，以精致的影像语言和深厚的文化内涵，向世界展示了东方美学的独特魅力。该片融合了武侠、爱情与哲学思考，通过李慕白、俞秀莲、玉娇龙等人物的命运，探讨了东方传统文化中的情感克制、道德规范与个人自由的矛盾。影片中的武术场景被赋予了诗意化的表达，尤其是竹林打斗和屋顶轻功等段落，既展示了中国武术的美感，又将其提升为精神层面的象征。"
+                    });
+                }
+                else if (filmTitle === "英雄") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "1.77亿美元",
+                            first_week: "1800万美元",
+                            highest_single_day: "580万美元"
+                        },
+                        ratings: {
+                            douban: "8.1",
+                            imdb: "7.9",
+                            ratingCount: "875000"
+                        },
+                        analysis: "《英雄》是张艺谋导演的视觉盛宴之作，以\"刺客与秦王\"的历史故事为线索，通过不同颜色的叙事段落，呈现出多角度的\"真相\"探寻。影片利用色彩象征手法构建叙事，红色代表激情与仇恨，蓝色象征追忆与冷静，白色寓意纯洁与牺牲，黑色暗示权力与死亡，绿色则暗喻和平与希望。在文化表达上，《英雄》将中国传统书法、音乐、武术、绘画等艺术形式完美融入电影语言中。"
+                    });
+                }
+                else if (filmTitle === "一代宗师") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "3.96亿人民币",
+                            first_week: "1.37亿人民币",
+                            highest_single_day: "0.39亿人民币"
+                        },
+                        ratings: {
+                            douban: "8.2",
+                            imdb: "7.9",
+                            ratingCount: "663458"
+                        },
+                        analysis: "《一代宗师》是王家卫导演2013年推出的武侠电影，以咏春宗师叶问为主线，展现了20世纪初的武林变迁与民国风云。影片以诗意化的视觉语言，讲述叶问与宫二的武道交集与情感纠葛，呈现出\"一个时代的终结，一代宗师的孤独\"。影片特别注重对咏春拳、八卦掌等武术流派的深入展现，通过精心设计的动作场景与哲学对白，探讨了武术精神的本质与传承。王家卫独特的美学风格与徐浩峰对武术的专业解读相结合，使影片既具有艺术性，又保持了武术的真实性。《一代宗师》获得香港电影金像奖最佳电影奖，并入围奥斯卡最佳摄影提名，是近年来最具影响力的武侠题材电影之一。"
+                    });
+                }
+                else if (filmTitle === "鸿门宴传奇") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "2.2亿人民币",
+                            first_week: "0.8亿人民币",
+                            highest_single_day: "0.21亿人民币"
+                        },
+                        ratings: {
+                            douban: "6.4",
+                            imdb: "6.1",
+                            ratingCount: "108853"
+                        },
+                        analysis: "《鸿门宴传奇》是李仁港导演的历史战争片，通过项羽与刘邦的对决，展现了秦末楚汉相争的历史风云。影片将历史故事戏剧化处理，以鸿门宴和范增、张良的谋士对弈为核心，辅以项羽与虞姬的爱情故事，呈现了一个情感与权谋交织的历史画卷。在文化表现上，影片重现了秦末汉初的服饰、兵器和战争场面，以及古代权谋政治的运作方式。尽管在历史准确性上有所取舍，但透过项羽性格中的刚烈与仁慈、张良与范增的智谋较量，以及楚汉争霸中的权力游戏，电影体现了中国古代\"义\"与\"利\"的文化冲突，以及英雄在命运与选择面前的挣扎。"
+                    });
+                }
+                else if (filmTitle === "霸王别姬") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "5700万美元",
+                            first_week: "180万美元",
+                            highest_single_day: "45万美元"
+                        },
+                        ratings: {
+                            douban: "9.6",
+                            imdb: "8.5",
+                            ratingCount: "2322866"
+                        },
+                        analysis: "《霸王别姬》通过几十年的历史变迁，展现了中国传统京剧艺术的魅力和命运。影片以程蝶衣和段小楼这对京剧搭档为核心，通过他们的人生际遇，折射出中国现代史的动荡与变革。程蝶衣的角色塑造尤为精彩，其对艺术的执着和对角色的痴迷，使他在现实与舞台之间的界限逐渐模糊，最终走向悲剧结局。电影中的京剧表演不仅仅是艺术展示，更是人物命运的象征和隐喻。"
+                    });
+                }
+                else if (filmTitle === "叶问系列") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "3亿美元(系列总和)",
+                            first_week: "500万美元",
+                            highest_single_day: "80万美元"
+                        },
+                        ratings: {
+                            douban: "8.0",
+                            imdb: "7.5",
+                            ratingCount: "750000"
+                        },
+                        analysis: "《叶问》系列电影以咏春拳大师叶问的传奇人生为蓝本，展现了中国传统武术的精髓和民族精神。系列影片通过叶问面对外敌入侵、民族危机的种种挑战，彰显了中国武术的博大精深和武者的品格操守。甄子丹的精湛演技和扎实的武术功底，使叶问这一形象栩栩如生，成为华语功夫电影的经典角色。影片中的动作场面不仅追求视觉震撼，更注重表现武术的实用性和哲学内涵。"
+                    });
+                }
+                else if (filmTitle === "大闹天宫") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "无精确数据",
+                            first_week: "-",
+                            highest_single_day: "-"
+                        },
+                        ratings: {
+                            douban: "9.3",
+                            imdb: "7.9",
+                            ratingCount: "258760"
+                        },
+                        analysis: "《大闹天宫》是中国动画史上的里程碑之作，以独特的中国美术风格演绎西游记故事。影片采用传统中国绘画与民间艺术相结合的表现手法，将京剧脸谱、敦煌壁画、古代版画等元素融入角色设计与场景构图中。尤其是孙悟空形象的塑造，集勇敢、机智、反抗精神于一身，成为几代中国人深刻的文化记忆。作为中国首部彩色长篇动画电影，《大闹天宫》奠定了\"中国学派\"动画的艺术风格，在国际舞台上获得广泛赞誉，被誉为中国动画的\"黄金时代\"经典之作。"
+                    });
+                }
+                else if (filmTitle === "白蛇：缘起") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "4.5亿人民币",
+                            first_week: "9500万人民币",
+                            highest_single_day: "2200万人民币"
+                        },
+                        ratings: {
+                            douban: "7.8",
+                            imdb: "7.5",
+                            ratingCount: "382451"
+                        },
+                        analysis: "《白蛇：缘起》以中国传统民间传说《白蛇传》为蓝本，讲述了白蛇与许仙前世的爱情故事。影片突破传统动画表现形式，采用水墨写意的美术风格，将中国传统文化中的道家思想、人妖恋题材以现代动画技术重新演绎。故事主题聚焦于\"爱与执念\"，探讨了因执念而生的爱情，以及记忆与身份认同的关系。作为国产动画电影的代表作，该片在视觉效果与叙事深度上均有出色表现，展现了中国动画工业的创新与进步。"
+                    });
+                }
+                else if (filmTitle === "姜子牙") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "16.03亿人民币",
+                            first_week: "13亿人民币",
+                            highest_single_day: "3.2亿人民币"
+                        },
+                        ratings: {
+                            douban: "6.9",
+                            imdb: "6.7",
+                            ratingCount: "516728"
+                        },
+                        analysis: "《姜子牙》改编自中国神话《封神演义》，聚焦封神大战之后的姜子牙，探讨命运、选择与救赎的主题。影片保持了中国神话的壮阔背景，同时融入现代价值观的思考，让传统神话人物姜子牙呈现出全新的精神面貌。在美术设计上，影片借鉴了中国传统绘画与古代建筑风格，创造出独特的东方神话视觉世界。这部作品是近年来中国动画\"神话宇宙\"构建的重要一环，既传承了中国传统文化，又以当代视角重新诠释经典故事，推动了国产动画电影的工业化与艺术性发展。"
+                    });
+                }
+                else if (filmTitle === "梅兰芳") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "7000万人民币",
+                            first_week: "1800万人民币",
+                            highest_single_day: "430万人民币"
+                        },
+                        ratings: {
+                            douban: "7.1",
+                            imdb: "6.8",
+                            ratingCount: "108576"
+                        },
+                        analysis: "《梅兰芳》以京剧大师梅兰芳的艺术人生为主线，展现了二十世纪前半叶京剧艺术的发展与传承。影片刻画了梅兰芳如何突破传统，革新京剧艺术，特别是其对\"旦角\"表演艺术的卓越贡献。通过梅兰芳的故事，电影深入探讨了艺术与人生、传统与创新的关系，以及中国传统文化在现代社会的价值与意义。影片在舞台表演场景中，精心还原了梅派艺术的精髓，包括其独特的身段、唱腔与扮相，为观众呈现了一场视听盛宴，也成为记录和传承中国传统戏曲艺术的重要影像作品。"
+                    });
+                }
+                else if (filmTitle === "饮食男女") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "3200万美元",
+                            first_week: "280万美元",
+                            highest_single_day: "70万美元"
+                        },
+                        ratings: {
+                            douban: "9.1",
+                            imdb: "8.1",
+                            ratingCount: "428965"
+                        },
+                        analysis: "《饮食男女》通过精致的烹饪场景展现中华饮食文化与家庭关系的微妙联系。李安导演将中国传统烹饪艺术作为情感传递的媒介，展示了食物在中国文化中超越简单营养需求的深层意义。影片中老朱一家四口的故事，折射出台湾社会现代化进程中家庭结构与价值观的变迁，以及传统与现代、东方与西方文化碰撞下的代际冲突与和解。片中令人垂涎的烹饪段落不仅是视觉享受，更是情感表达的载体，厨房成为家庭情感交流的中心空间。这部作品被视为李安\"家庭三部曲\"的收官之作，既具东方文化特色，又有普遍的人性关怀，成为华语电影中展现中国生活美学的经典之作。"
+                    });
+                }
+                else if (filmTitle === "长城") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "3.32亿美元",
+                            first_week: "6600万美元",
+                            highest_single_day: "2100万美元"
+                        },
+                        ratings: {
+                            douban: "5.0",
+                            imdb: "6.1",
+                            ratingCount: "375281"
+                        },
+                        analysis: "《长城》以中国古代长城为背景，融合了中国历史文化元素与好莱坞特效大片风格。影片展现了古代中国军事文化、兵法与防御工事，尤其是长城这一世界奇迹的军事用途与文化象征。影片通过外国雇佣兵与中国军队共同抵抗怪兽入侵的故事，探讨了信任、勇气与文化碰撞的主题。虽然在叙事深度上有所欠缺，但影片在视觉呈现上颇具特色，尤其是色彩鲜明的军团服饰、精巧的武器设计与宏伟的长城场景，展示了东方军事美学的独特魅力，为国际观众提供了一个了解中国古代军事文化的窗口。"
+                    });
+                }
+                else if (filmTitle === "孔子") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "1.54亿人民币",
+                            first_week: "2700万人民币",
+                            highest_single_day: "600万人民币"
+                        },
+                        ratings: {
+                            douban: "5.4",
+                            imdb: "5.6",
+                            ratingCount: "78392"
+                        },
+                        analysis: "《孔子》以中国古代思想家孔子的生平事迹为主线，展现了先秦时期的社会状况和儒家思想的形成过程。影片通过孔子周游列国、教书育人的经历，表现了儒家\"仁、义、礼、智、信\"等核心价值观。尽管在艺术表达上略显平淡，但影片对孔子形象的塑造和儒家思想的阐释具有一定的文化传播价值。作为一部聚焦中国传统文化核心人物的作品，该片为国际观众提供了了解孔子及儒家思想的窗口，展现了中华文明的精神根基。"
+                    });
+                }
+                else if (filmTitle === "哪吒之魔童降世") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "50.36亿人民币",
+                            first_week: "20亿人民币",
+                            highest_single_day: "3.4亿人民币"
+                        },
+                        ratings: {
+                            douban: "8.4",
+                            imdb: "7.8",
+                            ratingCount: "2017935"
+                        },
+                        analysis: "《哪吒之魔童降世》创新性地改编了中国传统神话《封神演义》中哪吒的故事，将\"天生魔丸\"的设定与\"我命由我不由天\"的现代价值观完美结合。影片在视觉呈现上融合了中国传统美学与现代动画技术，打造出独特的东方神话世界。哪吒与敖丙的关系重塑，从传统的敌对变为理解与救赎，展现了当代人文关怀。电影不仅在中国创造了50亿人民币的票房奇迹，成为中国影史票房亚军和全球单一市场票房最高的动画电影，还在海外市场获得广泛认可，被誉为中国动画产业的里程碑之作。影片的成功标志着中国动画电影打破了\"动画天花板\"，推动了国产动画向工业化、成人化方向发展。"
+                    });
+                }
+                else if (filmTitle === "推手") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "797万新台币",
+                            first_week: "125万新台币",
+                            highest_single_day: "30万新台币"
+                        },
+                        ratings: {
+                            douban: "8.2",
+                            imdb: "7.5",
+                            ratingCount: "87451"
+                        },
+                        analysis: "《推手》作为李安的导演处女作，以精致的叙事手法展现了东西方文化碰撞下的代际冲突与和解。影片通过郎雄饰演的太极大师朱时进移居美国后面临的文化适应问题，深入探讨了中国传统家庭价值观与美国个人主义之间的矛盾。太极\"推手\"作为中国传统武术技巧，在片中成为文化沟通的隐喻，既是保持平衡又是化解冲突的哲学表达。影片细腻刻画人物内心世界，展现了华人移民在异国他乡的孤独、怀旧与坚持，以及东方文化中\"忍\"与\"让\"的处世哲学。作为李安\"父亲三部曲\"之首，该片奠定了导演探索文化冲突与家庭情感的创作基调，荣获亚太影展最佳影片奖，开启了李安日后国际电影事业的辉煌。"
+                    });
+                }
+                else if (filmTitle === "游园惊梦") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "无精确数据",
+                            first_week: "-",
+                            highest_single_day: "-"
+                        },
+                        ratings: {
+                            douban: "7.8",
+                            imdb: "7.3",
+                            ratingCount: "5429"
+                        },
+                        analysis: "《游园惊梦》是汤显祖著名昆曲《牡丹亭》的重要片段，被誉为昆曲艺术的精华所在。影片以精美的舞台表演为主，展现了杜丽娘游园、梦幻与柳梦梅相会的经典段落，昆曲\"水磨腔\"的优美唱腔与精致的身段表演相得益彰。影片保留了昆曲的传统表演形式，包括程式化的动作、脸谱与服饰，展现了这一\"百戏之祖\"的独特美学风格。作为中国戏曲电影的代表作，该片不仅记录了珍贵的非物质文化遗产，也通过电影媒介向更广泛的观众传播了昆曲艺术。影片中女主角对爱情的追求与自由意志的表达，超越了时代局限，展现了中国古典文学中浪漫主义精神的闪光点，成为戏曲电影传承传统文化的典范之作。"
+                    });
+                }
+                else if (filmTitle === "变脸") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "无精确数据",
+                            first_week: "-",
+                            highest_single_day: "-"
+                        },
+                        ratings: {
+                            douban: "8.4",
+                            imdb: "7.6",
+                            ratingCount: "7892"
+                        },
+                        analysis: "《变脸》以四川传统川剧的独特技艺\"变脸\"为核心，展现了这一被列入国家级非物质文化遗产的绝技。影片既是艺术表演的记录，也融入了川剧故事情节，通过老艺人与年轻传人的关系，探讨传统艺术的传承与创新。变脸技艺在影片中展现出惊人的视觉效果，演员在瞬间切换不同的脸谱，象征人物心理与情感的变化。除变脸外，影片还展示了川剧中的吐火、滚灯等绝活，以及川剧特有的音乐风格和表演程式。作为中国戏曲电影的代表作，该片不仅向世界展示了中国传统戏曲艺术的魅力，也记录了濒临失传的民间艺术，对推动川剧保护与传承具有重要意义，展现了中国传统表演艺术中的技巧精湛与美学追求。"
+                    });
+                }
+                else if (filmTitle === "阿诗玛") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "无精确数据",
+                            first_week: "-",
+                            highest_single_day: "-"
+                        },
+                        ratings: {
+                            douban: "7.9",
+                            imdb: "7.0",
+                            ratingCount: "5931"
+                        },
+                        analysis: "《阿诗玛》改编自云南石林彝族撒尼人的民间叙事长诗，是新中国早期优秀的民族歌舞片。影片真实记录了撒尼族的传统服饰、歌舞与生活习俗，展现了云南石林独特的喀斯特地貌景观。故事讲述了美丽善良的撒尼族姑娘阿诗玛与勇敢的青年阿黑相爱，却遭到头人之子阿支的阻挠与迫害的悲剧。影片由杨丽坤主演，其充满活力的表演和民族特色的歌舞成为经典。作为一部展现少数民族文化的重要电影，《阿诗玛》记录了珍贵的民族艺术形式，荣获1982年西班牙桑坦德国际音乐电影节最佳舞蹈片奖。时至今日，阿诗玛的形象已成为云南石林的文化符号，成为彝族撒尼人文化的重要代表，对宣传与保护少数民族文化起到了积极作用。"
+                    });
+                }
+                else if (filmTitle === "百鸟朝凤") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "8000万人民币",
+                            first_week: "1600万人民币",
+                            highest_single_day: "390万人民币"
+                        },
+                        ratings: {
+                            douban: "8.1",
+                            imdb: "7.6",
+                            ratingCount: "186043"
+                        },
+                        analysis: "《百鸟朝凤》以陕西关中地区的唢呐艺术为核心，讲述了老艺人游天鸣传授技艺、坚守传统的故事。影片深入展现了中国传统葬礼文化中唢呐艺术的地位与意义，特别是具有地方特色的\"百鸟朝凤\"曲目所承载的文化内涵。通过师徒间的传承与矛盾，影片探讨了非物质文化遗产在现代社会中面临的生存危机与传承困境。导演吴天明以质朴的手法记录了乡村生活与民间艺术的点滴细节，展现了传统音乐文化的独特魅力。作为一部关注中国传统音乐遗产的影片，《百鸟朝凤》不仅是对唢呐艺术的致敬，也是对中国乡土文化与非物质文化遗产保护的深刻思考，引发了社会对传统文化传承问题的广泛关注。"
+                    });
+                }
+                else if (filmTitle === "春江水暖") {
+                    updatePageData({
+                        boxOffice: {
+                            total: "1.6亿人民币",
+                            first_week: "2800万人民币",
+                            highest_single_day: "650万人民币"
+                        },
+                        ratings: {
+                            douban: "7.9",
+                            imdb: "7.4",
+                            ratingCount: "179465"
+                        },
+                        analysis: "《春江水暖》以江南水乡为背景，通过一个普通家族四代人的生活片段，展现了中国传统家族伦理与现代生活的交融。影片借鉴中国传统绘画审美，采用长镜头与精心构图，将江南水乡的自然风光与人文景观融为一体，创造出独特的东方美学空间。故事围绕家族成员间的微妙情感与代际关系展开，细腻刻画了中国式家庭中的矛盾与和解、传统与变迁。影片富含东方哲学思想，尤其是对生命流转、自然循环的思考，以及对中国传统\"和合\"理念的现代诠释。作为一部充满生活智慧与美学追求的作品，《春江水暖》展现了中国当代电影对传统文化的创新表达，其对江南水乡生活美学的细腻捕捉，获得柏林电影节最佳摄影奖，成为展现中国传统生活美学的代表作品。"
+                    });
+                }
+                // 默认数据
+                else {
+                    updatePageData({
+                        boxOffice: {
+                            total: "数据获取中...",
+                            first_week: "数据获取中...",
+                            highestDay: "数据获取中..."
+                        },
+                        ratings: {
+                            douban: "暂无",
+                            imdb: "暂无",
+                            ratingCount: "0"
+                        },
+                        analysis: "该电影的详细分析正在整理中，敬请期待..."
+                    });
+                }
+            } catch (error) {
+                console.error("获取电影数据失败:", error);
+            }
+        }
+
+        function updatePageData(data) {
+            // 更新票房数据
+            if (data.boxOffice) {
+                document.getElementById('total-box-office').textContent = data.boxOffice.total;
+                document.getElementById('first-week-box-office').textContent = data.boxOffice.first_week;
+                document.getElementById('highest-day-box-office').textContent = data.boxOffice.highestDay;
+            }
+
+            // 更新评分数据
+            if (data.ratings) {
+                document.getElementById('douban-score').textContent = data.ratings.douban;
+                document.getElementById('douban-rating').textContent = data.ratings.douban;
+                document.getElementById('imdb-score').textContent = data.ratings.imdb;
+                document.getElementById('rating-count').textContent = data.ratings.ratingCount;
+            }
+
+            // 更新影片分析
+            if (data.analysis) {
+                document.getElementById('film-analysis').innerHTML = data.analysis.replace(/\n/g, '<br>');
+            }
+        }
+    </script>
+{% endblock %} 

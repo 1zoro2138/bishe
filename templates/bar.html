@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}各省对比柱状图{% endblock %}
+{% block content %}
+    <h2>各省对比柱状图</h2>
+    <form method="POST" action="{{ url_for('bar') }}">
+        <label for="province1">选择第一个省份:</label>
+        <select name="province1" id="province1">
+            <option value="">--请选择--</option>
+            {% for province in provinces %}
+                <option value="{{ province }}" {% if province == selected_province1 %}selected{% endif %}>{{ province }}</option>
+            {% endfor %}
+        </select>
+        <label for="province2">选择第二个省份:</label>
+        <select name="province2" id="province2">
+            <option value="">--请选择--</option>
+            {% for province in provinces %}
+                <option value="{{ province }}" {% if province == selected_province2 %}selected{% endif %}>{{ province }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">生成对比图</button>
+    </form>
+    {% if error %}
+        <p style="color: red;">错误: {{ error }}</p>
+    {% elif image_data %}
+        <img src="data:image/png;base64,{{ image_data }}" alt="各省对比柱状图" style="max-width: 100%;margin-left: 50px;">
+    {% endif %}
+{% endblock %}

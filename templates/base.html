@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %} - 电影票房分析系统</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome 图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- 自定义CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="d-flex">
+        <!-- 侧边导航栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-film me-2"></i>电影票房分析</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="/" class="nav-link">
+                            <i class="fas fa-home me-2"></i>首页
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle">
+                            <i class="fas fa-fire-alt me-2"></i>全国票房分析
+                        </a>
+                        <div class="dropdown-content">
+                            <a href="/heatmap" class="dropdown-item">
+                                <i class="fas fa-map me-2"></i>全国热力图
+                            </a>
+                            <a href="/monthly_top15" class="dropdown-item">
+                                <i class="fas fa-trophy me-2"></i>各月票房TOP15
+                            </a>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/province_monthly" class="nav-link">
+                            <i class="fas fa-chart-area me-2"></i>各省份票房月展示
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/nezha2" class="nav-link">
+                            <i class="fas fa-chart-line me-2"></i>哪吒2分析
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/traditional_culture' %}active{% endif %}" href="{{ url_for('traditional_culture') }}">传统文化电影分析</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle">
+                            <i class="fas fa-chart-bar me-2"></i>各省票房分析
+                        </a>
+                        <div class="dropdown-content">
+                            <a href="/trend" class="dropdown-item">
+                                <i class="fas fa-chart-line me-2"></i>票房趋势折线图
+                            </a>
+                            <a href="/bar" class="dropdown-item">
+                                <i class="fas fa-chart-bar me-2"></i>各省对比柱状图
+                            </a>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="content">
+            <div class="container-fluid p-4">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- 自定义JS -->
+    <script>
+        // 导航栏高亮当前页面
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                    
+                    // 如果是下拉菜单中的项目，也高亮父菜单
+                    const parentDropdown = link.closest('.dropdown');
+                    if (parentDropdown) {
+                        const parentLink = parentDropdown.querySelector('.dropdown-toggle');
+                        if (parentLink) {
+                            parentLink.classList.add('active');
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

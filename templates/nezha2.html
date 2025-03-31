@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+{% block title %}哪吒2分析{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.css">
+<style>
+    .nezha-header {
+        background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/static/images/nezha2.jpg');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 60px 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+    }
+    
+    .nezha-header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+    }
+    
+    .nezha-header p {
+        font-size: 1.2rem;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .stats-card {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        padding: 25px;
+        margin-bottom: 30px;
+        transition: transform 0.3s;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stats-card h3 {
+        margin-top: 0;
+        color: #333;
+        font-size: 1.2rem;
+    }
+    
+    .stats-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1a237e;
+        margin: 15px 0;
+    }
+    
+    .stats-desc {
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .chart-container {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        padding: 20px;
+        margin-bottom: 30px;
+        height: 400px;
+    }
+    
+    .milestones {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        padding: 25px;
+        margin-bottom: 30px;
+    }
+    
+    .milestone-item {
+        display: flex;
+        margin-bottom: 20px;
+        position: relative;
+    }
+    
+    .milestone-date {
+        flex: 0 0 80px;
+        font-weight: bold;
+        color: #1a237e;
+    }
+    
+    .milestone-content {
+        flex: 1;
+        border-left: 2px solid #e0e0e0;
+        padding-left: 20px;
+        position: relative;
+    }
+    
+    .milestone-content:before {
+        content: '';
+        position: absolute;
+        left: -7px;
+        top: 0;
+        width: 12px;
+        height: 12px;
+        background-color: #1a237e;
+        border-radius: 50%;
+    }
+    
+    .milestone-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .milestone-desc {
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 30px;
+    }
+    
+    .comparison-table th,
+    .comparison-table td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .comparison-table th {
+        background-color: #f5f5f5;
+        font-weight: 600;
+    }
+    
+    .comparison-table tr:hover {
+        background-color: #f9f9f9;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nezha-header text-center">
+    <h1>哪吒之魔童闹海</h1>
+    <p>中国影史票房第一、全球最高票房动画电影、单一市场票房最高电影</p>
+</div>
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card text-center">
+                <h3>总票房</h3>
+                <div class="stats-value">148亿</div>
+                <div class="stats-desc">中国内地票房（人民币）</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card text-center">
+                <h3>观影人次</h3>
+                <div class="stats-value">3亿+</div>
+                <div class="stats-desc">创中国影史观影人次最高记录</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card text-center">
+                <h3>全球排名</h3>
+                <div class="stats-value">第6</div>
+                <div class="stats-desc">全球电影票房历史排名</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card text-center">
+                <h3>观众评分</h3>
+                <div class="stats-value">9.7</div>
+                <div class="stats-desc">猫眼观众综合评分</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="milestones">
+                <h3 class="mb-4">票房里程碑</h3>
+                <div class="milestone-item">
+                    <div class="milestone-date">Day 1</div>
+                    <div class="milestone-content">
+                        <div class="milestone-title">10亿人民币</div>
+                        <div class="milestone-desc">成为春节档首日破10亿的影片</div>
+                    </div>
+                </div>
+                <div class="milestone-item">
+                    <div class="milestone-date">Day 6</div>
+                    <div class="milestone-content">
+                        <div class="milestone-title">40亿人民币</div>
+                        <div class="milestone-desc">打破最快达到40亿票房记录</div>
+                    </div>
+                </div>
+                <div class="milestone-item">
+                    <div class="milestone-date">Day 8</div>
+                    <div class="milestone-content">
+                        <div class="milestone-title">50亿人民币</div>
+                        <div class="milestone-desc">超越前作《哪吒之魔童降世》，成为中国内地动画电影票房冠军</div>
+                    </div>
+                </div>
+                <div class="milestone-item">
+                    <div class="milestone-date">Day 9</div>
+                    <div class="milestone-content">
+                        <div class="milestone-title">60亿人民币</div>
+                        <div class="milestone-desc">超越《长津湖》成为中国票房最高电影</div>
+                    </div>
+                </div>
+                <div class="milestone-item">
+                    <div class="milestone-date">Day 10</div>
+                    <div class="milestone-content">
+                        <div class="milestone-title">70亿人民币</div>
+                        <div class="milestone-desc">超越《星球大战：原力觉醒》成为全球单一市场票房最高电影</div>
+                    </div>
+                </div>
+                <div class="milestone-item">
+                    <div class="milestone-date">Day 16</div>
+                    <div class="milestone-content">
+                        <div class="milestone-title">100亿人民币</div>
+                        <div class="milestone-desc">成为中国首部票房破百亿的电影</div>
+                    </div>
+                </div>
+                <div class="milestone-item">
+                    <div class="milestone-date">Day 22</div>
+                    <div class="milestone-content">
+                        <div class="milestone-title">全球票房冠军</div>
+                        <div class="milestone-desc">超越《脑筋急转弯2》成为全球票房最高的动画电影</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="chart-container" id="dailyBoxOffice"></div>
+            <div class="chart-container" id="globalComparison"></div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="stats-card">
+                <h3 class="mb-4">《哪吒》系列对比</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>指标</th>
+                            <th>《哪吒之魔童降世》(2019)</th>
+                            <th>《哪吒之魔童闹海》(2025)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>总票房</td>
+                            <td>50.36亿人民币</td>
+                            <td>148亿人民币</td>
+                        </tr>
+                        <tr>
+                            <td>观影人次</td>
+                            <td>1.27亿</td>
+                            <td>3亿+</td>
+                        </tr>
+                        <tr>
+                            <td>中国票房排名</td>
+                            <td>第5位</td>
+                            <td>第1位</td>
+                        </tr>
+                        <tr>
+                            <td>制作预算</td>
+                            <td>3亿人民币</td>
+                            <td>6亿人民币</td>
+                        </tr>
+                        <tr>
+                            <td>制作周期</td>
+                            <td>3年</td>
+                            <td>5年</td>
+                        </tr>
+                        <tr>
+                            <td>观众评分</td>
+                            <td>9.6</td>
+                            <td>9.7</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="stats-card">
+                <h3 class="mb-4">《哪吒2》的商业价值</h3>
+                <p>《哪吒之魔童闹海》不仅创造了票房奇迹，也带动了相关产业链的发展：</p>
+                <ul>
+                    <li><strong>上市公司股价大涨</strong>：主要出品方光线传媒春节后股价累计涨幅高达203%，总市值接近850亿元</li>
+                    <li><strong>衍生品热销</strong>：泡泡玛特推出的《哪吒之魔童闹海》相关手办盲盒迅速售罄</li>
+                    <li><strong>海外市场拓展</strong>：在北美地区的772间影院小规模上映，首周周末含总统日四天票房达769万美元</li>
+                    <li><strong>产业链合作</strong>：全国138家动画制作公司共同参与制作，推动了国内动画产业的发展</li>
+                    <li><strong>相关出版物热销</strong>：《哪吒之三界往事》官方授权绘本预售销量表现优异</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 每日票房走势图
+    const dailyChart = echarts.init(document.getElementById('dailyBoxOffice'));
+    
+    const dailyOption = {
+        title: {
+            text: '日票房走势 (前20天)',
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'axis',
+            formatter: '{b}日<br />票房：{c}亿元'
+        },
+        xAxis: {
+            type: 'category',
+            data: Array.from({length: 20}, (_, i) => `Day ${i+1}`),
+            axisLabel: {
+                interval: 1
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: '票房(亿元)',
+            axisLabel: {
+                formatter: '{value} 亿'
+            }
+        },
+        series: [{
+            name: '日票房',
+            data: [11.2, 8.3, 7.5, 6.9, 6.1, 5.3, 4.8, 4.2, 4.0, 3.7, 3.5, 3.2, 3.0, 2.7, 2.5, 2.3, 2.1, 1.9, 1.7, 1.6],
+            type: 'line',
+            smooth: true,
+            lineStyle: {
+                width: 4,
+                color: '#4e73df'
+            },
+            itemStyle: {
+                color: '#4e73df'
+            },
+            areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(78, 115, 223, 0.5)' },
+                    { offset: 1, color: 'rgba(78, 115, 223, 0.1)' }
+                ])
+            }
+        }]
+    };
+    
+    dailyChart.setOption(dailyOption);
+    
+    // 全球对比图
+    const globalChart = echarts.init(document.getElementById('globalComparison'));
+    
+    const globalOption = {
+        title: {
+            text: '全球票房TOP5动画电影比较',
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'shadow'
+            },
+            formatter: '{b}<br />票房：{c}亿美元'
+        },
+        xAxis: {
+            type: 'value',
+            name: '票房(亿美元)',
+            axisLabel: {
+                formatter: '{value}'
+            }
+        },
+        yAxis: {
+            type: 'category',
+            data: ['《狮子王》(2019)', '《冰雪奇缘2》(2019)', '《超级马里奥》(2023)', '《脑筋急转弯2》(2024)', '《哪吒之魔童闹海》(2025)'],
+            axisLabel: {
+                fontSize: 12
+            }
+        },
+        series: [{
+            name: '票房',
+            data: [16.6, 14.5, 14.0, 16.99, 20.52],
+            type: 'bar',
+            barWidth: '60%',
+            itemStyle: {
+                color: function(params) {
+                    const colors = ['#ff9f43', '#ee5253', '#0abde3', '#10ac84', '#5f27cd'];
+                    return colors[params.dataIndex];
+                }
+            },
+            label: {
+                show: true,
+                position: 'right',
+                formatter: '{c}亿$'
+            }
+        }]
+    };
+    
+    globalChart.setOption(globalOption);
+    
+    // 响应窗口调整大小
+    window.addEventListener('resize', function() {
+        dailyChart.resize();
+        globalChart.resize();
+    });
+});
+</script>
+{% endblock %}

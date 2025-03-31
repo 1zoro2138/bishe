@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}首页{% endblock %}
+{% block content %}
+
+    <div class="carousel">
+        <div class="carousel-inner">
+            {% for poster in posters %}
+                <img src="{{ url_for('static', filename='images/' + poster) }}" alt="Movie Poster" class="carousel-item">
+            {% endfor %}
+        </div>
+        <div class="carousel-controls">
+            <button class="carousel-control prev" onclick="moveSlide(-1)">❮</button>
+            <button class="carousel-control next" onclick="moveSlide(1)">❯</button>
+        </div>
+    </div>
+    <script>
+        let slideIndex = 0;
+        const slides = document.querySelectorAll('.carousel-item');
+        const totalSlides = slides.length;
+
+        function showSlide(index) {
+            if (index >= totalSlides) slideIndex = 0;
+            if (index < 0) slideIndex = totalSlides - 1;
+            slides.forEach((slide, i) => {
+                slide.style.display = (i === slideIndex) ? 'block' : 'none';
+            });
+        }
+
+        function moveSlide(step) {
+            slideIndex += step;
+            showSlide(slideIndex);
+        }
+
+        // 初始显示第一张
+        showSlide(slideIndex);
+
+        // 自动轮播（每3秒切换一次）
+        setInterval(() => moveSlide(1), 3000);
+    </script>
+
+
+{% endblock %}

@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+{% block title %}{{ province }}票房分析{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.css">
+<style>
+    .province-header {
+        background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/static/images/china_map.jpg');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 40px 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+    }
+    
+    .province-header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+    }
+    
+    .stats-card {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        padding: 25px;
+        margin-bottom: 30px;
+        transition: transform 0.3s;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stats-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1a237e;
+        margin: 15px 0;
+    }
+    
+    .stats-desc {
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .chart-container {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        padding: 20px;
+        margin-bottom: 30px;
+        height: 400px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="province-header text-center">
+    <h1>{{ province }}票房分析</h1>
+    <p>{{ time_range }}期间票房数据分析与统计</p>
+</div>
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="stats-card text-center">
+                <h3>总票房</h3>
+                <div class="stats-value">{{ format_number(total_box_office) }}</div>
+                <div class="stats-desc">{{ time_range }}期间总票房（万元）</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card text-center">
+                <h3>分账票房</h3>
+                <div class="stats-value">{{ format_number(total_share_box_office) }}</div>
+                <div class="stats-desc">{{ time_range }}期间分账票房（万元）</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card text-center">
+                <h3>观影人次</h3>
+                <div class="stats-value">{{ format_number(total_audience) }}</div>
+                <div class="stats-desc">{{ time_range }}期间观影人次（千人次）</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="chart-container" id="boxOfficeTrend"></div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="chart-container" id="compareWithOthers"></div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-container" id="audienceTrend"></div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="stats-card">
+                <h3 class="mb-4">{{ province }}票房数据详情</h3>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>时间范围</th>
+                                <th>综合票房（万）</th>
+                                <th>分账票房（万）</th>
+                                <th>人次（千）</th>
+                                <th>场次</th>
+                                <th>场均人次</th>
+                                <th>票价（元）</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in data %}
+                            <tr>
+                                <td>{{ row['时间范围'] }}</td>
+                                <td>{{ row['综合票房（万）'] }}</td>
+                                <td>{{ row['分账票房（万）'] }}</td>
+                                <td>{{ row['人次（千）'] }}</td>
+                                <td>{{ row['场次'] }}</td>
+                                <td>{{ row['场均人次'] }}</td>
+                                <td>{{ row['票价'] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 将Jinja模板变量转换为JavaScript变量
+    var provinceName = "{{ province }}";
+    var datesList = JSON.parse('{{ dates|tojson }}');
+    var boxOfficeData = JSON.parse('{{ box_office_data|tojson }}');
+    var shareBoxOfficeData = JSON.parse('{{ share_box_office_data|tojson }}');
+    var audienceData = JSON.parse('{{ audience_data|tojson }}');
+    var neighborProvinces = JSON.parse('{{ neighbor_provinces|tojson }}');
+    var neighborBoxOffice = JSON.parse('{{ neighbor_box_office|tojson }}');
+    var neighborShareBoxOffice = JSON.parse('{{ neighbor_share_box_office|tojson }}');
+    var neighborAudience = JSON.parse('{{ neighbor_audience|tojson }}');
+    
+    // 票房趋势图
+    var boxOfficeTrendChart = echarts.init(document.getElementById('boxOfficeTrend'));
+    
+    var boxOfficeTrendOption = {
+        title: {
+            text: provinceName + '票房趋势',
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'axis',
+            formatter: '{b}<br />综合票房：{c0}万元<br />分账票房：{c1}万元'
+        },
+        legend: {
+            data: ['综合票房', '分账票房'],
+            bottom: 10
+        },
+        xAxis: {
+            type: 'category',
+            data: datesList,
+            axisLabel: {
+                rotate: 45
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: '票房(万元)'
+        },
+        series: [
+            {
+                name: '综合票房',
+                type: 'line',
+                smooth: true,
+                data: boxOfficeData,
+                lineStyle: {
+                    width: 3,
+                    color: '#4e73df'
+                },
+                itemStyle: {
+                    color: '#4e73df'
+                }
+            },
+            {
+                name: '分账票房',
+                type: 'line',
+                smooth: true,
+                data: shareBoxOfficeData,
+                lineStyle: {
+                    width: 3,
+                    color: '#e74a3b'
+                },
+                itemStyle: {
+                    color: '#e74a3b'
+                }
+            }
+        ]
+    };
+    
+    boxOfficeTrendChart.setOption(boxOfficeTrendOption);
+    
+    // 与其他省份对比图
+    var compareChart = echarts.init(document.getElementById('compareWithOthers'));
+    
+    var compareOption = {
+        title: {
+            text: '与周边省份票房对比',
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'shadow'
+            }
+        },
+        legend: {
+            data: ['综合票房', '分账票房', '观影人次'],
+            bottom: 10
+        },
+        xAxis: {
+            type: 'category',
+            data: neighborProvinces,
+            axisLabel: {
+                rotate: 45
+            }
+        },
+        yAxis: [
+            {
+                type: 'value',
+                name: '票房(万元)',
+                position: 'left'
+            },
+            {
+                type: 'value',
+                name: '人次(千)',
+                position: 'right'
+            }
+        ],
+        series: [
+            {
+                name: '综合票房',
+                type: 'bar',
+                data: neighborBoxOffice,
+                itemStyle: {
+                    color: '#4e73df'
+                }
+            },
+            {
+                name: '分账票房',
+                type: 'bar',
+                data: neighborShareBoxOffice,
+                itemStyle: {
+                    color: '#1cc88a'
+                }
+            },
+            {
+                name: '观影人次',
+                type: 'bar',
+                yAxisIndex: 1,
+                data: neighborAudience,
+                itemStyle: {
+                    color: '#f6c23e'
+                }
+            }
+        ]
+    };
+    
+    compareChart.setOption(compareOption);
+    
+    // 观影人次趋势图
+    var audienceTrendChart = echarts.init(document.getElementById('audienceTrend'));
+    
+    var audienceTrendOption = {
+        title: {
+            text: provinceName + '观影人次趋势',
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'axis'
+        },
+        xAxis: {
+            type: 'category',
+            data: datesList,
+            axisLabel: {
+                rotate: 45
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: '人次(千)'
+        },
+        series: [
+            {
+                type: 'line',
+                data: audienceData,
+                smooth: true,
+                areaStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: 'rgba(246, 194, 62, 0.8)' },
+                        { offset: 1, color: 'rgba(246, 194, 62, 0.1)' }
+                    ])
+                },
+                lineStyle: {
+                    width: 3,
+                    color: '#f6c23e'
+                },
+                itemStyle: {
+                    color: '#f6c23e'
+                }
+            }
+        ]
+    };
+    
+    audienceTrendChart.setOption(audienceTrendOption);
+    
+    // 响应窗口调整大小
+    window.addEventListener('resize', function() {
+        boxOfficeTrendChart.resize();
+        compareChart.resize();
+        audienceTrendChart.resize();
+    });
+});
+</script>
+{% endblock %} 
